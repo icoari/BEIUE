@@ -688,7 +688,10 @@
       }
     }
 
+    let lastTouchTime = 0;
+
     document.addEventListener('click', (e) => {
+      if (Date.now() - lastTouchTime < 500) return; // ignore le click synthétique post-touch
       if (milestoneEl.classList.contains('active')) {
         if (milestoneUnlocked) closeMilestone();
         return;
@@ -697,6 +700,7 @@
     });
 
     document.addEventListener('touchstart', (e) => {
+      lastTouchTime = Date.now();
       if (milestoneEl.classList.contains('active')) {
         if (milestoneUnlocked) closeMilestone();
         return;
