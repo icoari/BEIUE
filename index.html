@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Est-il un enculé ?</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Arial Black', Arial, sans-serif;
+      cursor: crosshair;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+
+    .title {
+      font-size: clamp(2rem, 7vw, 5rem);
+      font-weight: 900;
+      text-align: center;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.2;
+      padding: 0 1.5rem;
+      z-index: 10;
+      pointer-events: none;
+      text-shadow: 0 0 40px rgba(255, 60, 60, 0.6);
+    }
+
+    .title .name { color: #ff3c3c; }
+
+    .title .verdict {
+      display: inline-block;
+      color: #ff3c3c;
+      animation: shake 2.5s infinite;
+    }
+
+    .title .toujours {
+      display: none;
+      color: #ffcc00;
+      text-shadow: 0 0 30px rgba(255, 204, 0, 0.8);
+      animation: apparition 0.6s cubic-bezier(.36,.07,.19,.97) both;
+    }
+
+    @keyframes apparition {
+      0%   { transform: scale(0) rotate(-6deg); opacity: 0; }
+      60%  { transform: scale(1.25) rotate(2deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    }
+
+    @keyframes shake {
+      0%, 88%, 100% { transform: rotate(0deg) scale(1); }
+      90% { transform: rotate(-4deg) scale(1.06); }
+      93% { transform: rotate(4deg) scale(1.06); }
+      96% { transform: rotate(-2deg) scale(1.03); }
+      98% { transform: rotate(2deg) scale(1.03); }
+    }
+
+    .subtitle {
+      margin-top: 1.5rem;
+      font-size: clamp(0.85rem, 2.5vw, 1.2rem);
+      color: #555;
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+      animation: pulse 3s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .counter {
+      margin-top: 1.5rem;
+      font-size: clamp(0.75rem, 1.8vw, 1rem);
+      color: #444;
+      z-index: 10;
+      pointer-events: none;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .counter strong {
+      color: #ff3c3c;
+      font-size: 1.5em;
+      transition: transform 0.1s;
+      display: inline-block;
+    }
+
+    .counter strong.bump {
+      transform: scale(1.6);
+    }
+
+    .timer-row {
+      margin-top: 0.6rem;
+      font-size: clamp(0.75rem, 1.8vw, 1rem);
+      color: #444;
+      z-index: 10;
+      pointer-events: none;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .timer-row .t {
+      color: #ffcc00;
+      font-size: 1.5em;
+      display: inline-block;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-row .best {
+      color: #555;
+      font-size: 0.85em;
+      margin-left: 0.5em;
+    }
+
+    .oui {
+      position: fixed;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 999;
+      animation: flyUp 1.3s ease-out forwards;
+      white-space: nowrap;
+      transform-origin: center;
+    }
+
+    @keyframes flyUp {
+      0%   { transform: translate(-50%, -50%) scale(0.2) rotate(var(--rot)); opacity: 1; }
+      15%  { transform: translate(-50%, -70%) scale(1.3) rotate(calc(var(--rot) * -0.6)); opacity: 1; }
+      100% { transform: translate(-50%, -220%) scale(0.7) rotate(var(--rot)); opacity: 0; }
+    }
+
+    .bg-text {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 45vw;
+      font-weight: 900;
+      color: rgba(255, 60, 60, 0.03);
+      pointer-events: none;
+      z-index: 0;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+
+    /* ─── MILESTONE OVERLAY ─── */
+    #milestone {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(0,0,0,0.92);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      animation: fadeIn 0.4s ease;
+    }
+
+    #milestone.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .milestone-number {
+      font-size: clamp(6rem, 25vw, 16rem);
+      font-weight: 900;
+      color: #ff3c3c;
+      line-height: 1;
+      animation: bigBounce 0.6s cubic-bezier(.36,.07,.19,.97) both;
+      text-shadow: 0 0 80px rgba(255,60,60,0.8), 0 0 160px rgba(255,60,60,0.4);
+    }
+
+    @keyframes bigBounce {
+      0%   { transform: scale(0) rotate(-10deg); }
+      60%  { transform: scale(1.2) rotate(3deg); }
+      80%  { transform: scale(0.9) rotate(-2deg); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+
+    .milestone-text {
+      font-size: clamp(1.2rem, 4vw, 2.5rem);
+      font-weight: 900;
+      color: #fff;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 1rem;
+      padding: 0 1rem;
+      letter-spacing: 0.05em;
+      animation: slideUp 0.5s 0.3s ease both;
+    }
+
+    .milestone-sub {
+      font-size: clamp(0.9rem, 2.5vw, 1.4rem);
+      color: #ff6666;
+      margin-top: 0.8rem;
+      text-align: center;
+      padding: 0 1rem;
+      animation: slideUp 0.5s 0.5s ease both;
+    }
+
+    .milestone-time {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 900;
+      color: #ffcc00;
+      margin-top: 0.8rem;
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 40px rgba(255, 204, 0, 0.6);
+      animation: slideUp 0.5s 0.45s ease both;
+    }
+
+    .milestone-best {
+      font-size: clamp(0.8rem, 2vw, 1.1rem);
+      color: #666;
+      margin-top: 0.4rem;
+      animation: slideUp 0.5s 0.55s ease both;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .milestone-best span { color: #ffcc00; }
+
+    .milestone-close {
+      margin-top: 2rem;
+      font-size: clamp(0.75rem, 2vw, 1rem);
+      color: #555;
+      animation: slideUp 0.5s 0.8s ease both;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(30px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+
+    /* ─── CONFETTI CANVAS ─── */
+    #confetti-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 9001;
+      display: none;
+    }
+
+    #confetti-canvas.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <canvas id="confetti-canvas"></canvas>
+  <div class="bg-text">OUI</div>
+
+  <h1 class="title">
+    <span class="name">Brandon</span><br>
+    <span id="verb-part">est-il</span><br>
+    <span class="toujours" id="toujours-word">TOUJOURS </span><span id="article-word">un </span><span class="verdict" id="verdict-word">enculé ?</span>
+  </h1>
+  <p class="subtitle">Clique n'importe où pour le savoir</p>
+  <p class="counter">Confirmations : <strong id="count">0</strong></p>
+  <p class="timer-row" id="timer-row" style="visibility:hidden">
+    Temps : <span class="t" id="timer-display">–</span>
+    <span class="best" id="best-display"></span>
+  </p>
+
+  <div id="milestone">
+    <div class="milestone-number" id="milestone-num">100</div>
+    <div class="milestone-text" id="milestone-text">100 CONFIRMATIONS</div>
+    <div class="milestone-sub" id="milestone-sub">Brandon est DÉFINITIVEMENT un enculé</div>
+    <div class="milestone-time" id="milestone-time" style="display:none"></div>
+    <div class="milestone-best" id="milestone-best" style="display:none"></div>
+    <div class="milestone-close" style="opacity:0;transition:opacity 0.5s">— Clique pour continuer —</div>
+  </div>
+
+  <script>
+    /* ── Params URL compacts ── */
+    // ?n=Prénom  ?f (féminin)  ?g (gentil/merveille)
+    // rétrocompat : ?name=  ?prenom=  ?genre=f
+    const params  = new URLSearchParams(window.location.search);
+    const prenom  = params.get('n') || params.get('name') || params.get('prenom') || 'Brandon';
+    const feminin = params.has('f') || params.get('genre') === 'f';
+    const gentil  = params.has('g');
+
+    const verbPart = feminin ? 'est-elle' : 'est-il';
+    const article  = (feminin || gentil) ? 'une ' : 'un ';
+    const verdict  = gentil
+      ? 'merveille ?'
+      : (feminin ? 'enculée ?' : 'enculé ?');
+
+    document.querySelector('.name').textContent         = prenom;
+    document.getElementById('verb-part').textContent    = verbPart;
+    document.getElementById('article-word').textContent = article;
+    document.getElementById('verdict-word').textContent = verdict;
+    document.title = `${prenom} ${verbPart} ${article}${verdict}`;
+
+    /* ── Pool de réponses ── */
+    const POOL_GENTIL = [
+      "OUI","OUAIS","OH QUE OUI","OUI OUI OUI","UN GRAND OUI",
+      "MILLE FOIS OUI","ABSOLUMENT","ASSURÉMENT","CERTAINEMENT","CLAIREMENT",
+      "CARRÉMENT","TOTALEMENT","COMPLÈTEMENT","ENTIÈREMENT","PARFAITEMENT",
+      "ÉVIDEMMENT","FORCÉMENT","SANS AUCUN DOUTE","UNANIMEMENT","SANS CONTESTE",
+      "À 100%","À 1000%","ASTRONOMIQUEMENT","UNIVERSELLEMENT","LÉGENDAIREMENT",
+      "CONFIRMED","YES","OBVIOUSLY","DEFINITELY","ABSOLUTELY","100% FACTS","NO CAP",
+      "UN ANGE","UNE PERLE","UN TRÉSOR","UN GÉNIE","UN SOLEIL","UNE PÉPITE",
+      "MAGNIFIQUE","SUBLIME","SPLENDIDE","RADIEUX","EXCEPTIONNEL","REMARQUABLE",
+      "INCROYABLE","FANTASTIQUE","FORMIDABLE","MERVEILLEUX","EXTRAORDINAIRE",
+      "LE MEILLEUR","LA CRÈME","L'ÉLITE","LE TOP","LE SUMMUM","L'APOGÉE",
+      "TROP MIGNON","ADORABLE","TOUCHANT","ATTACHANT","IRRÉSISTIBLE",
+      "LA SCIENCE CONFIRME","LES EXPERTS APPROUVENT","MÉDICALEMENT PROUVÉ",
+      "LE JURY EST UNANIME","L'ACADÉMIE VALIDE","WIKIPÉDIA LE DIT",
+      "SA MÈRE LE SAIT","SES AMIS CONFIRMENT","TOUT LE MONDE L'ADORE",
+      "DEPUIS LE BIG BANG","ÉCRIT DANS LES ÉTOILES","GRAVÉ DANS LE MARBRE",
+      "MÉDAILLE D'OR","CHAMPION DU MONDE","HALL OF FAME","PALME D'OR",
+      "OSCAR DE LA MERVEILLE","PRIX NOBEL DE BEAUTÉ","LÉGION D'HONNEUR",
+      "CERTIFIÉ PARFAIT","LABEL QUALITÉ SUPÉRIEURE","APPELLATION CONTRÔLÉE",
+      "LES ANGES CONFIRMENT","DIEU EST D'ACCORD","MÊME LES NUAGES SAVENT",
+      "LE SOLEIL SOURIT","LES FLEURS POUSSENT","LES OISEAUX CHANTENT",
+      "SIRI EST D'ACCORD","EINSTEIN APPROUVE","LES ASTRES PARLENT",
+      "ÇA SE DEMANDE ?","C'EST UNE QUESTION ?","QUI EN DOUTERAIT",
+    ];
+
+    const POOL = [
+      // Classique
+      "OUI","OUAIS","OH QUE OUI","OUI OUI OUI","UN GRAND OUI",
+      "MILLE FOIS OUI","ABSOLUMENT","ASSURÉMENT","CERTAINEMENT","CLAIREMENT",
+      "CARRÉMENT","TOTALEMENT","COMPLÈTEMENT","ENTIÈREMENT","PARFAITEMENT",
+      "ÉVIDEMMENT","FORCÉMENT","MANIFESTEMENT","VISIBLEMENT","INCONTESTABLEMENT",
+      "INDUBITABLEMENT","INDÉNIABLEMENT","SANS AUCUN DOUTE","UNANIMEMENT",
+      "À L'UNANIMITÉ","SANS CONTESTE","SANS ÉQUIVOQUE","DE TOUTE ÉVIDENCE",
+      // Emphase
+      "À 100%","À 200%","À 1000%","À L'INFINI","AU-DELÀ DU RAISONNABLE",
+      "ASTRONOMIQUEMENT","COSMIQUEMENT","UNIVERSELLEMENT","GALACTIQUEMENT",
+      "MONUMENTALEMENT","LÉGENDAIREMENT","HISTORIQUEMENT","ÉPIQUEMENT",
+      "QUANTIQUEMENT","NUCLÉAIREMENT","CHIMIQUEMENT","BIOLOGIQUEMENT",
+      // Internet / pop
+      "CONFIRMED","YES","YEET","OBVIOUSLY","DEFINITELY","ABSOLUTELY",
+      "100% FACTS","NO CAP","REAL","BIG FACTS","PERIODT","FR FR",
+      "NOT EVEN CLOSE","BASED","HARD AGREE","GIGACHAD MOVE",
+      "SÍ","JA","DA","HAI","SI SI SI","OUI MONSIEUR","OUI MADAME",
+      // Institutions & autorités
+      "OUI MON GÉNÉRAL","ROGER THAT","AFFIRMATIVE","MESSAGE REÇU 5 SUR 5",
+      "LE TRIBUNAL A STATUÉ","LE JURY EST UNANIME","LE SÉNAT CONFIRME",
+      "L'ONU A VOTÉ","L'ACADÉMIE FRANÇAISE APPROUVE","LE PAPE CONFIRME",
+      "JÉSUS CONFIRME","MAHOMET AUSSI","BOUDDHA HOCHETÊTE",
+      "LES ILLUMINATI SAVENT","LA NASA A VÉRIFIÉ","LA CIA CONFIRME",
+      "INTERPOL EST AU COURANT","WIKIPÉDIA LE DIT",
+      // Science & stats
+      "LA SCIENCE NE MENT PAS","LES EXPERTS CONFIRMENT","MÉDICALEMENT CERTIFIÉ",
+      "STATISTIQUEMENT OUI","CLINIQUEMENT PROUVÉ","PEER-REVIEWED",
+      "RÉSULTATS SIGNIFICATIFS","P-VALUE < 0.001","ÉTUDE EN DOUBLE AVEUGLE",
+      "DARWIN L'AVAIT PRÉVU","EINSTEIN ACQUIESCE","FREUD ANALYSE",
+      // Ancienneté
+      "ÉCRIT DANS LES ÉTOILES","DEPUIS LE BIG BANG","DEPUIS LA NUIT DES TEMPS",
+      "DEPUIS TOUJOURS","GRAVÉ DANS LE MARBRE","INSCRIT DANS L'ADN",
+      "LES DINOSAURES LE SAVAIENT","LES ROMAINS AUSSI","VENI VIDI ENCULE",
+      "C'EST DANS LA BIBLE","NOSTRADAMUS L'AVAIT DIT","LES MAYAS AVAIENT RAISON",
+      // Entourage & témoins
+      "MÊME SA MÈRE LE SAIT","MÊME SON CHIEN LE SAIT","LES VOISINS AUSSI",
+      "LE MONDE ENTIER LE SAIT","MÊME LES ANIMAUX SAVENT","SA GRAND-MÈRE CONFIRME",
+      "SON MÉDECIN LE SAIT","SON PROF AUSSI","SES AMIS CONFIRMENT",
+      "MÊME SES ENNEMIS SONT D'ACCORD","TOUT LE QUARTIER LE SAIT",
+      // Rhétorique
+      "ÇA SE DEMANDE ?","C'EST UNE QUESTION ?","VRAIMENT ?",
+      "TU EN DOUTAIS ?","SANS BLAGUE ?","ÉTONNANT NON ?",
+      "COMME SI C'ÉTAIT INCERTAIN","QUELLE SURPRISE","OH INCROYABLE",
+      "CHOQUANT","RENVERSANT","ÉPOUSTOUFLANT","QUI L'EÛT CRU",
+      // Diplômes & titres
+      "DOCTORAT EN ENCULERIE","MASTER MENTION TRÈS BIEN","CERTIFIÉ ISO 9001",
+      "LABEL ROUGE","APPELLATION CONTRÔLÉE","MÉDAILLE D'OR",
+      "CHAMPION DU MONDE","NUMÉRO 1 MONDIAL","RECORD BATTU",
+      "HALL OF FAME","LÉGION D'HONNEUR","PALME D'OR",
+      "OSCAR DE L'ENCULÉ","CÉSAR DU MEILLEUR ENCULÉ","GRAMMY AWARD",
+      // Absurde
+      "LES PIGEONS LE SAVENT","MÊME MON FRIGO","MA TÉLÉ CONFIRME",
+      "GOOGLE LE DIT","SIRI EST D'ACCORD","ALEXA CONFIRME",
+      "MON HOROSCOPE AUSSI","LES ASTRES PARLENT","MERCURE RÉTROGRADE",
+      "C'EST SON SIGNE ASTRAL","TYPIQUE CAPRICORNE","SCORPION ÉVIDEMMENT",
+      "LES CHAMPIGNONS SAVENT","LA FORÊT CONFIRME","L'OCÉAN ACQUIESCE",
+      "LE VENT L'A DIT","LA PLUIE CONFIRME","MÊME LE SOLEIL",
+    ];
+
+    const ACTIVE_POOL = gentil ? POOL_GENTIL : POOL;
+
+    /* Shuffle Fisher-Yates + queue sans répétition */
+    let queue = [];
+    function nextReponse() {
+      if (queue.length === 0) {
+        queue = [...ACTIVE_POOL];
+        for (let i = queue.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [queue[i], queue[j]] = [queue[j], queue[i]];
+        }
+      }
+      return queue.pop();
+    }
+
+    const COULEURS = gentil
+      ? ["#ff69b4","#ffb347","#ffcc00","#ff85c2","#ffd700","#ff6eb4","#ffaa33","#ffe066"]
+      : ["#ff3c3c","#ff6b6b","#ff9999","#ffcc00","#ff6600","#ff3399","#ff44aa","#ff8800"];
+
+    /* ── Compteur ── */
+    let count = 0;
+    const countEl = document.getElementById('count');
+
+    function bumpCounter() {
+      countEl.textContent = count;
+      countEl.classList.remove('bump');
+      void countEl.offsetWidth;
+      countEl.classList.add('bump');
+      setTimeout(() => countEl.classList.remove('bump'), 150);
+    }
+
+    /* ── Speedrun timer ── */
+    let timerStart   = null;
+    let timerFrame   = null;
+    let timerStopped = false;
+    const timerDisplay = document.getElementById('timer-display');
+    const bestDisplay  = document.getElementById('best-display');
+    const BEST_KEY = 'speedrun_best_' + prenom.toLowerCase();
+
+    function formatTime(ms) {
+      const s  = Math.floor(ms / 1000);
+      const cs = Math.floor((ms % 1000) / 10);
+      return s + '.' + String(cs).padStart(2, '0') + 's';
+    }
+
+    function loadBest() {
+      const b = localStorage.getItem(BEST_KEY);
+      return b ? parseInt(b, 10) : null;
+    }
+
+    function saveBest(ms) {
+      localStorage.setItem(BEST_KEY, ms);
+    }
+
+    function updateBestDisplay() {
+      const b = loadBest();
+      bestDisplay.textContent = b ? '| record : ' + formatTime(b) : '';
+    }
+
+    function startTimer() {
+      if (timerStart !== null) return;
+      timerStart = performance.now();
+      timerStopped = false;
+      function tick() {
+        if (timerStopped) return;
+        timerDisplay.textContent = formatTime(performance.now() - timerStart);
+        timerFrame = requestAnimationFrame(tick);
+      }
+      timerFrame = requestAnimationFrame(tick);
+    }
+
+    function stopTimer() {
+      timerStopped = true;
+      if (timerFrame) cancelAnimationFrame(timerFrame);
+      return Math.floor(performance.now() - timerStart);
+    }
+
+    updateBestDisplay();
+
+    /* ── Spawn mot ── */
+    function spawnOui(x, y) {
+      const texte   = nextReponse();
+      const couleur = COULEURS[Math.floor(Math.random() * COULEURS.length)];
+      const isMobile = window.innerWidth < 600;
+      // Taille de base selon mobile/desktop, réduite pour les longs textes
+      const baseMin = isMobile ? 11 : 15;
+      const baseMax = isMobile ? 19 : 32;
+      const base    = Math.random() * (baseMax - baseMin) + baseMin;
+      const shrink  = Math.max(0.45, 1 - (texte.length - 4) * 0.014);
+      const taille  = Math.floor(base * shrink);
+      const rot     = (Math.random() - 0.5) * 36;
+
+      const el = document.createElement('div');
+      el.className   = 'oui';
+      el.textContent = texte;
+      el.style.left        = x + 'px';
+      el.style.top         = y + 'px';
+      el.style.color       = couleur;
+      el.style.fontSize    = taille + 'px';
+      el.style.textShadow  = `0 0 20px ${couleur}99`;
+      el.style.setProperty('--rot', rot + 'deg');
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+
+    /* ── Milestones ── */
+    const MILESTONES = gentil ? {
+      100: {
+        num:  "100",
+        text: "100 CONFIRMATIONS",
+        sub:  `${prenom} est DÉFINITIVEMENT une merveille`,
+        showTime: true,
+      },
+      200: {
+        num:  "200",
+        text: "200 CONFIRMATIONS",
+        sub:  `Le monde entier adore ${prenom}`,
+        showTime: false,
+      },
+      500: {
+        num:  "500",
+        text: "500 CONFIRMATIONS",
+        sub:  `${prenom} est entré dans la légende`,
+        showTime: false,
+      },
+      1000: {
+        num:  "1000",
+        text: "1000 CONFIRMATIONS",
+        sub:  `PRIX NOBEL DE LA MERVEILLE DÉCERNÉ À ${prenom.toUpperCase()}`,
+        showTime: false,
+      },
+    } : {
+      100: {
+        num:  "100",
+        text: "100 CONFIRMATIONS",
+        sub:  `${prenom} est DÉFINITIVEMENT ${feminin ? 'une enculée' : 'un enculé'}`,
+        showTime: true,
+      },
+      200: {
+        num:  "200",
+        text: "200 CONFIRMATIONS",
+        sub:  `Personne ne doute plus de ${prenom}`,
+        showTime: false,
+      },
+      500: {
+        num:  "500",
+        text: "500 CONFIRMATIONS !!",
+        sub:  `${prenom} est entré dans la légende`,
+        showTime: false,
+      },
+      1000: {
+        num:  "1000",
+        text: "1000 CONFIRMATIONS",
+        sub:  `BREVET NATIONAL D'ENCULERIE DÉCERNÉ À ${prenom.toUpperCase()}`,
+        showTime: false,
+      },
+    };
+
+    const milestoneEl      = document.getElementById('milestone');
+    const milestoneNum     = document.getElementById('milestone-num');
+    const milestoneText    = document.getElementById('milestone-text');
+    const milestoneSub     = document.getElementById('milestone-sub');
+    const milestoneTimeEl  = document.getElementById('milestone-time');
+    const milestoneBestEl  = document.getElementById('milestone-best');
+    const confettiCanvas   = document.getElementById('confetti-canvas');
+    let confettiAnim       = null;
+
+    function showMilestone(data, elapsedMs) {
+      milestoneNum.textContent  = data.num;
+      milestoneText.textContent = data.text;
+      milestoneSub.textContent  = data.sub;
+
+      if (data.showTime && elapsedMs != null) {
+        const prev = loadBest();
+        const isRecord = prev === null || elapsedMs < prev;
+        if (isRecord) saveBest(elapsedMs);
+        updateBestDisplay();
+
+        milestoneTimeEl.textContent = formatTime(elapsedMs);
+        milestoneTimeEl.style.display = '';
+
+        if (isRecord && prev !== null) {
+          milestoneBestEl.innerHTML = `NOUVEAU RECORD ! Ancien : <span>${formatTime(prev)}</span>`;
+          milestoneBestEl.style.display = '';
+        } else if (!isRecord) {
+          milestoneBestEl.innerHTML = `Record : <span>${formatTime(prev)}</span>`;
+          milestoneBestEl.style.display = '';
+        } else {
+          milestoneBestEl.style.display = 'none';
+        }
+      } else {
+        milestoneTimeEl.style.display = 'none';
+        milestoneBestEl.style.display = 'none';
+      }
+
+      milestoneNum.style.animation = 'none';
+      void milestoneNum.offsetWidth;
+      milestoneNum.style.animation = '';
+      milestoneEl.classList.add('active');
+      startConfetti();
+    }
+
+    let milestoneUnlocked = false;
+
+    function closeMilestone() {
+      milestoneEl.classList.remove('active');
+      milestoneUnlocked = false;
+      stopConfetti();
+    }
+
+    milestoneEl.addEventListener('click', () => {
+      if (milestoneUnlocked) closeMilestone();
+    });
+
+    function showMilestoneWithLock(data, elapsedMs, lockMs) {
+      milestoneUnlocked = false;
+      showMilestone(data, elapsedMs);
+      if (lockMs) {
+        setTimeout(() => {
+          milestoneUnlocked = true;
+          const closeHint = milestoneEl.querySelector('.milestone-close');
+          if (closeHint) closeHint.style.opacity = '1';
+        }, lockMs);
+      } else {
+        milestoneUnlocked = true;
+      }
+    }
+
+    /* ── Confetti ── */
+    const ctx = confettiCanvas.getContext('2d');
+    let particles = [];
+
+    function startConfetti() {
+      confettiCanvas.width  = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      confettiCanvas.classList.add('active');
+      particles = Array.from({ length: 120 }, () => ({
+        x:   Math.random() * confettiCanvas.width,
+        y:   Math.random() * -confettiCanvas.height,
+        w:   Math.random() * 12 + 6,
+        h:   Math.random() * 6 + 4,
+        color: COULEURS[Math.floor(Math.random() * COULEURS.length)],
+        speed: Math.random() * 4 + 2,
+        angle: Math.random() * 360,
+        spin:  (Math.random() - 0.5) * 8,
+        drift: (Math.random() - 0.5) * 2,
+      }));
+      confettiLoop();
+    }
+
+    function confettiLoop() {
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      let alive = false;
+      for (const p of particles) {
+        p.y     += p.speed;
+        p.x     += p.drift;
+        p.angle += p.spin;
+        if (p.y < confettiCanvas.height + 20) alive = true;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      if (alive) confettiAnim = requestAnimationFrame(confettiLoop);
+      else stopConfetti();
+    }
+
+    function stopConfetti() {
+      if (confettiAnim) cancelAnimationFrame(confettiAnim);
+      confettiCanvas.classList.remove('active');
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+
+    /* ── Événements click / touch ── */
+    function handleInteraction(x, y) {
+      // Démarrer le timer au 1er clic
+      if (count === 0) startTimer();
+      count++;
+      bumpCounter();
+      spawnOui(x, y);
+      // Stopper le timer à 100
+      if (count === 100) {
+        const elapsed = stopTimer();
+        timerDisplay.textContent = formatTime(elapsed);
+        document.getElementById('timer-row').style.visibility = 'visible';
+        // Révéler TOUJOURS dans le titre
+        const toujoursEl = document.getElementById('toujours-word');
+        toujoursEl.style.display = 'inline';
+        showMilestoneWithLock(MILESTONES[100], elapsed, 5000);
+      } else if (MILESTONES[count]) {
+        showMilestoneWithLock(MILESTONES[count], null, 0);
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (milestoneEl.classList.contains('active')) {
+        if (milestoneUnlocked) closeMilestone();
+        return;
+      }
+      handleInteraction(e.clientX, e.clientY);
+    });
+
+    document.addEventListener('touchstart', (e) => {
+      if (milestoneEl.classList.contains('active')) {
+        if (milestoneUnlocked) closeMilestone();
+        return;
+      }
+      for (const touch of e.changedTouches) {
+        handleInteraction(touch.clientX, touch.clientY);
+      }
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      if (confettiCanvas.classList.contains('active')) {
+        confettiCanvas.width  = window.innerWidth;
+        confettiCanvas.height = window.innerHeight;
+      }
+    });
+  </script>
+</body>
+</html>
